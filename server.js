@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const fs = require('fs'); // The File System module
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -9,7 +10,7 @@ const server = http.createServer(app);
 // Increased max payload to 100MB to safely handle our 50MB file limit
 const wss = new WebSocket.Server({ server, maxPayload: 100 * 1024 * 1024 }); 
 
-app.use(express.static('public'));
+app.use(express.static(__dirname));
 
 const HISTORY_FILE = 'chat_history.json';
 let chatHistory = { general: [], gaming: [], random: [] };
@@ -83,4 +84,8 @@ wss.on('connection', (ws) => {
 const PORT = 3000;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`Ultimate Chat Server running on port ${PORT}`);
+});
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'src/index.html'));
 });
