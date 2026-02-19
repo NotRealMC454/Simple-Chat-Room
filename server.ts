@@ -1,4 +1,13 @@
-import { loadHistory, saveHistory, chatHistory, ChatMessage, getChannels, createChannel, deleteChannel } from "./utils/historyManagement";
+import {
+  loadHistory,
+  saveHistory,
+  chatHistory,
+  ChatMessage,
+  getChannels,
+  createChannel,
+  deleteChannel,
+} from "./utils/historyManagement";
+
 import express from "express";
 import http from "http";
 import { WebSocketServer, WebSocket } from "ws";
@@ -94,8 +103,7 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
 
         chatHistory[channel].push(msgObj);
 
-        if (chatHistory[channel].length > 100)
-          chatHistory[channel].shift();
+        if (chatHistory[channel].length > 100) chatHistory[channel].shift();
 
         saveHistory();
 
@@ -112,9 +120,7 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
       }
       case "like": {
         if (!chatHistory[channel]) break;
-        const msg = chatHistory[channel].find(
-          (m) => m.id === data.messageId,
-        );
+        const msg = chatHistory[channel].find((m) => m.id === data.messageId);
         if (msg) {
           msg.likes++;
           saveHistory();

@@ -146,8 +146,14 @@ function deleteChannel(name) {
 }
 
 function appendMessage(msg) {
+  let decodedText;
+  try {
+    decodedText = atob(msg.text);
+  } catch {
+    decodedText = msg.text;
+  }
   let isPinged = false;
-  if (msg.text.includes(`@${myName}`)) {
+  if (decodedText.includes(`@${myName}`)) {
     isPinged = true;
     if (msg.user !== myName) playPingSound();
   }
@@ -164,7 +170,7 @@ function appendMessage(msg) {
   chat.innerHTML += `
                 <div class="msg-block ${isPinged ? "highlight" : ""}" id="msg-${msg.id}">
                     <span class="msg-user">${msg.user}</span>
-                    <div class="msg-text">${msg.text}</div>
+                    <div class="msg-text">${decodedText}</div>
                     ${mediaHtml}
                     <div class="msg-actions">
                         <button class="action-btn" id="like-${msg.id}" onclick="likeMessage('${msg.id}')">❤️ ${msg.likes}</button>
@@ -240,7 +246,7 @@ msgInput.addEventListener("keypress", function (e) {
         type: "message",
         channel: currentChannel,
         user: myName,
-        text: msgInput.value,
+        text: btoa(msgInput.value),
         media: pendingMediaBase64,
         mediaType: pendingMediaType,
       }),

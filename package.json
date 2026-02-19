@@ -1,6 +1,6 @@
 {
   "name": "simple-chat-room",
-  "version": "1.0.0",
+  "version": "1.5.3",
   "description": "A simple chat room that requires node.js to run and port forwarding (You should use cloudflare or playit.gg to make it public)",
   "homepage": "https://github.com/NotRealMC454/Simple-Chat-Room#readme",
   "bugs": {
