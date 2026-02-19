@@ -34,62 +34,66 @@ wss.on("connection", (ws) => {
   ws.on("message", (message) => {
     const data = JSON.parse(message);
 
-    if (data.type === "join") {
-      ws.currentChannel = data.channel;
-      ws.send(
-        JSON.stringify({
-          type: "history",
-          channel: data.channel,
-          messages: chatHistory[data.channel],
-        }),
-      );
-    } else if (data.type === "message") {
-      const msgObj = {
-        id: Date.now().toString() + Math.floor(Math.random() * 1000),
-        user: data.user,
-        text: data.text,
-        media: data.media, // Changed from 'image' to 'media'
-        mediaType: data.mediaType, // 'image' or 'video'
-        likes: 0,
-      };
+    switch (data.type) {
+      case data.type === "join": {
+        ws.currentChannel = data.channel;
+        ws.send(
+          JSON.stringify({
+            type: "history",
+            channel: data.channel,
+            messages: chatHistory[data.channel],
+          }),
+        );
+      }
+      case data.type === "message": {
+        const msgObj = {
+          id: Date.now().toString() + Math.floor(Math.random() * 1000),
+          user: data.user,
+          text: data.text,
+          media: data.media, // Changed from 'image' to 'media'
+          mediaType: data.mediaType, // 'image' or 'video'
+          likes: 0,
+        };
 
-      chatHistory[data.channel].push(msgObj);
+        chatHistory[data.channel].push(msgObj);
 
-      // Keep the last 100 messages to prevent the JSON file from getting too massive
-      if (chatHistory[data.channel].length > 100)
-        chatHistory[data.channel].shift();
+        // Keep the last 100 messages to prevent the JSON file from getting too massive
+        if (chatHistory[data.channel].length > 100)
+          chatHistory[data.channel].shift();
 
-      saveHistory(); // Save to hard drive!
+        saveHistory(); // Save to hard drive!
 
-      wss.clients.forEach((client) => {
-        if (
-          client.readyState === WebSocket.OPEN &&
-          client.currentChannel === data.channel
-        ) {
-          client.send(JSON.stringify({ type: "message", ...msgObj }));
-        }
-      });
-    } else if (data.type === "like") {
-      const msg = chatHistory[data.channel].find(
-        (m) => m.id === data.messageId,
-      );
-      if (msg) {
-        msg.likes++;
-        saveHistory(); // Save the new like to the hard drive
         wss.clients.forEach((client) => {
           if (
             client.readyState === WebSocket.OPEN &&
             client.currentChannel === data.channel
           ) {
-            client.send(
-              JSON.stringify({
-                type: "updateLikes",
-                id: msg.id,
-                likes: msg.likes,
-              }),
-            );
+            client.send(JSON.stringify({ type: "message", ...msgObj }));
           }
         });
+      }
+      case data.type === "like": {
+        const msg = chatHistory[data.channel].find(
+          (m) => m.id === data.messageId,
+        );
+        if (msg) {
+          msg.likes++;
+          saveHistory(); // Save the new like to the hard drive
+          wss.clients.forEach((client) => {
+            if (
+              client.readyState === WebSocket.OPEN &&
+              client.currentChannel === data.channel
+            ) {
+              client.send(
+                JSON.stringify({
+                  type: "updateLikes",
+                  id: msg.id,
+                  likes: msg.likes,
+                }),
+              );
+            }
+          });
+        }
       }
     }
   });
