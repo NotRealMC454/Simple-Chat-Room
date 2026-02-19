@@ -9,7 +9,9 @@ body {
 }
 
 #login-screen,
-#settings-modal {
+#settings-modal,
+#add-channel-modal,
+#delete-channel-modal {
   position: absolute;
   top: 0;
   left: 0;
@@ -22,7 +24,9 @@ body {
   justify-content: center;
   z-index: 10;
 }
-#settings-modal {
+#settings-modal,
+#add-channel-modal,
+#delete-channel-modal {
   display: none;
   z-index: 20;
 }
@@ -68,9 +72,34 @@ body {
   background: rgba(32, 34, 37, 0.8);
   display: flex;
   flex-direction: column;
-  padding: 20px 0;
+  padding: 0;
   backdrop-filter: blur(5px);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+#channel-header {
+  padding: 15px 20px 5px;
+  font-size: 0.75em;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #8e9297;
+}
+#channels-list {
+  flex: 1;
+  overflow-y: auto;
+}
+#add-channel-btn {
+  margin: 10px 20px;
+  padding: 8px;
+  background: transparent;
+  border: 1px solid #4f545c;
+  color: #4f545c;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+#add-channel-btn:hover {
+  border-color: #dcddde;
+  color: #dcddde;
 }
 .channel {
   padding: 10px 20px;
@@ -82,6 +111,19 @@ body {
 .channel:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #dcddde;
+}
+.channel-delete-btn {
+  opacity: 0;
+  color: #ed4245;
+  margin-left: 8px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.channel:hover .channel-delete-btn {
+  opacity: 1;
+}
+.channel-delete-btn:hover {
+  background: rgba(237, 66, 69, 0.2);
 }
 .channel.active {
   background: rgba(88, 101, 242, 0.3);
@@ -175,7 +217,7 @@ body {
 }
 
 #input-area {
-  padding: 20px;
+  padding: 10px;
   background: rgba(54, 57, 63, 0.5);
   display: flex;
   gap: 10px;

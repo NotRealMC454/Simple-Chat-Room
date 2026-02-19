@@ -3,6 +3,7 @@ let myName = "";
 let currentChannel = "general";
 let pendingMediaBase64 = null;
 let pendingMediaType = null; // 'image' or 'video'
+let channels = [];
 
 const chat = document.getElementById("chat");
 const msgInput = document.getElementById("msg");
@@ -42,7 +43,20 @@ function joinChat() {
     const rawText = e.data instanceof Blob ? await e.data.text() : e.data;
     const data = JSON.parse(rawText);
 
-    if (data.type === "history") {
+    if (data.type === "channels") {
+      channels = data.channels;
+      renderChannels(channels);
+    } else if (data.type === "channelCreated") {
+      switchChannel(data.name);
+    } else if (data.type === "channelDeleted") {
+      if (currentChannel === data.name) {
+        currentChannel = channels.find(c => c !== data.name) || "general";
+        chatHeader.innerText = `# ${currentChannel}`;
+        msgInput.placeholder = `Message #${currentChannel}...`;
+      }
+      channels = channels.filter(c => c !== data.name);
+      renderChannels(channels);
+    } else if (data.type === "history") {
       chat.innerHTML = "";
       data.messages.forEach((msg) => appendMessage(msg));
     } else if (data.type === "message") {
@@ -66,6 +80,69 @@ function switchChannel(channelName, element) {
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({ type: "join", channel: currentChannel }));
   }
+}
+
+let channelToDelete = null;
+
+function renderChannels(channels) {
+  const channelsList = document.getElementById("channels-list");
+  channelsList.innerHTML = "";
+  
+  channels.forEach((channelName) => {
+    const channelDiv = document.createElement("div");
+    channelDiv.className = "channel" + (currentChannel === channelName ? " active" : "");
+    
+    const channelNameSpan = document.createElement("span");
+    channelNameSpan.innerText = `# ${channelName}`;
+    channelNameSpan.style.flex = "1";
+    channelNameSpan.onclick = function() {
+      switchChannel(channelName, channelDiv);
+    };
+    channelDiv.appendChild(channelNameSpan);
+    
+    if (channelName !== "general") {
+      const deleteBtn = document.createElement("span");
+      deleteBtn.innerText = "✕";
+      deleteBtn.className = "channel-delete-btn";
+      deleteBtn.onclick = function(e) {
+        e.stopPropagation();
+        openDeleteChannelModal(channelName);
+      };
+      channelDiv.appendChild(deleteBtn);
+    }
+    
+    channelsList.appendChild(channelDiv);
+  });
+}
+
+function openAddChannelModal() {
+  document.getElementById("new-channel-name").value = "";
+  document.getElementById("add-channel-modal").style.display = "flex";
+}
+
+function openDeleteChannelModal(channelName) {
+  channelToDelete = channelName;
+  document.getElementById("delete-channel-name").innerText = channelName;
+  document.getElementById("delete-channel-modal").style.display = "flex";
+}
+
+function confirmDeleteChannel() {
+  if (channelToDelete) {
+    ws.send(JSON.stringify({ type: "deleteChannel", name: channelToDelete }));
+    channelToDelete = null;
+  }
+  document.getElementById("delete-channel-modal").style.display = "none";
+}
+
+function createChannel() {
+  const name = document.getElementById("new-channel-name").value.trim();
+  if (!name) return;
+  ws.send(JSON.stringify({ type: "createChannel", name }));
+  document.getElementById("add-channel-modal").style.display = "none";
+}
+
+function deleteChannel(name) {
+  ws.send(JSON.stringify({ type: "deleteChannel", name }));
 }
 
 function appendMessage(msg) {

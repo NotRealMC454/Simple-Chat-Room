@@ -9,45 +9,68 @@ export interface ChatMessage {
   likes: number;
 }
 
-export type ChannelName = "general" | "gaming" | "random";
-
-export type ChatHistory = {
-  [key in ChannelName]: ChatMessage[];
-};
+export type ChatHistory = Record<string, ChatMessage[]>;
 
 const HISTORY_FILE = "chat_history.json";
-export const chatHistory: ChatHistory = {
-  general: [],
-  gaming: [],
-  random: [],
-};
+export const chatHistory: ChatHistory = {};
+
+export function getChannels(): string[] {
+  return Object.keys(chatHistory);
+}
+
+export function createChannel(name: string): boolean {
+  const channelName = name.toLowerCase().trim();
+  if (!channelName || chatHistory[channelName]) {
+    return false;
+  }
+  chatHistory[channelName] = [];
+  saveHistory();
+  return true;
+}
+
+export function deleteChannel(name: string): boolean {
+  const channelName = name.toLowerCase().trim();
+  if (!channelName || channelName === "general" || !chatHistory[channelName]) {
+    return false;
+  }
+  delete chatHistory[channelName];
+  saveHistory();
+  return true;
+}
 
 export function loadHistory() {
   if (!fs.existsSync(HISTORY_FILE)) {
-    console.log("History file does not exist. Creating new file.");
-    fs.writeFileSync(HISTORY_FILE, JSON.stringify(chatHistory));
+    console.log("History file does not exist. Creating 'general' channel.");
+    chatHistory.general = [];
+    saveHistory();
+    return;
   }
-
-  chatHistory.general = [];
-  chatHistory.gaming = [];
-  chatHistory.random = [];
 
   try {
     const savedData = fs.readFileSync(HISTORY_FILE, "utf8");
     const parsed = JSON.parse(savedData);
 
-    if (!parsed.general || !parsed.gaming || !parsed.random) {
-      console.error("Invalid history file format.");
-      throw new Error("Invalid history file format.");
+    if (typeof parsed !== "object" || parsed === null) {
+      console.error("Invalid history file format. Creating 'general' channel.");
+      chatHistory.general = [];
+      return;
     }
 
-    chatHistory.general = parsed.general;
-    chatHistory.gaming = parsed.gaming;
-    chatHistory.random = parsed.random;
+    for (const channel in parsed) {
+      if (Array.isArray(parsed[channel])) {
+        chatHistory[channel] = parsed[channel];
+      }
+    }
 
-    console.log("Chat history loaded from disk.");
+    if (Object.keys(chatHistory).length === 0) {
+      chatHistory.general = [];
+      saveHistory();
+    }
+
+    console.log(`Chat history loaded from disk: ${Object.keys(chatHistory).join(", ")}`);
   } catch (error) {
     console.error("There was an error.", error);
+    chatHistory.general = [];
   }
 }
 

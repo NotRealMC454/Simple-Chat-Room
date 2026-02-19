@@ -3,6 +3,7 @@
   <head>
     <title>Ultimate Chat</title>
     <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   </head>
   <body>
     <div id="login-screen">
@@ -30,16 +31,41 @@
     </div>
 
     <div id="sidebar">
-      <div class="channel active" onclick="switchChannel('general', this)">
-        # general
-      </div>
-      <div class="channel" onclick="switchChannel('gaming', this)">
-        # gaming
-      </div>
-      <div class="channel" onclick="switchChannel('random', this)">
-        # random
-      </div>
+      <div id="channel-header">Channels</div>
+      <div id="channels-list"></div>
+      <button id="add-channel-btn" onclick="openAddChannelModal()">
+        + Add Channel
+      </button>
       <div id="settings-btn" onclick="openSettings()">⚙️ Settings</div>
+    </div>
+
+    <div id="add-channel-modal">
+      <div class="box">
+        <h2>Add Channel</h2>
+        <input
+          type="text"
+          id="new-channel-name"
+          placeholder="Channel name..."
+        />
+        <button onclick="createChannel()">Create</button>
+        <button
+          class="close-btn"
+          onclick="
+            document.getElementById('add-channel-modal').style.display = 'none'
+          "
+        >
+          Close
+        </button>
+      </div>
+    </div>
+
+    <div id="delete-channel-modal">
+      <div class="box">
+        <h2>Delete Channel</h2>
+        <p>Delete <strong id="delete-channel-name"></strong>?</p>
+        <button class="close-btn" onclick="confirmDeleteChannel()">Delete</button>
+        <button onclick="document.getElementById('delete-channel-modal').style.display = 'none'">Cancel</button>
+      </div>
     </div>
 
     <div id="chat-container">
