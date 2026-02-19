@@ -53,5 +53,14 @@
     </div>
 
     <script src="index.js"></script>
+    <script>
+      const ws = new WebSocket(`ws://${window.location.host}`);
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "reload") {
+          window.location.reload();
+        }
+      };
+    </script>
   </body>
 </html>
