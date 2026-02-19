@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ultimate Chat</title>
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, sans-serif; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: #dcddde; display: flex; height: 100vh; overflow: hidden; }
+        
+        #login-screen, #settings-modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 12, 41, 0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
+        #settings-modal { display: none; z-index: 20; }
+        
+        .box { background: #2f3136; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-align: center; border: 1px solid #5865F2; }
+        .box input { width: 80%; padding: 10px; margin-bottom: 15px; background: #202225; border: none; color: white; border-radius: 4px; outline: none; }
+        .box button { background: #5865F2; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 5px;}
+        .box button:hover { background: #4752c4; }
+        .close-btn { background: #ed4245 !important; }
+
+        #sidebar { width: 240px; background: rgba(32, 34, 37, 0.8); display: flex; flex-direction: column; padding: 20px 0; backdrop-filter: blur(5px); border-right: 1px solid rgba(255,255,255,0.1); }
+        .channel { padding: 10px 20px; cursor: pointer; color: #8e9297; display: flex; align-items: center; }
+        .channel:hover { background: rgba(255,255,255,0.1); color: #dcddde; }
+        .channel.active { background: rgba(88, 101, 242, 0.3); color: white; font-weight: bold; }
+        
+        #settings-btn { margin-top: auto; padding: 15px; text-align: center; cursor: pointer; background: #292b2f; font-weight: bold; }
+        #settings-btn:hover { background: #3ba55c; color: white; }
+
+        #chat-container { flex: 1; display: flex; flex-direction: column; background: transparent; }
+        #chat-header { height: 50px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; padding: 0 20px; font-weight: bold; font-size: 1.1em; color: white; background: rgba(54, 57, 63, 0.5); }
+        
+        #chat { flex: 1; overflow-y: scroll; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .msg-block { background: rgba(47, 49, 54, 0.8); padding: 15px; border-radius: 8px; border-left: 3px solid #5865F2; }
+        .msg-user { color: #5865F2; font-weight: bold; font-size: 1.1em; }
+        .msg-text { margin-top: 5px; color: #dcddde; word-wrap: break-word; }
+        
+        /* Media styling */
+        .msg-media { max-width: 400px; max-height: 300px; border-radius: 5px; margin-top: 10px; display: block; background: #000; }
+        
+        .msg-actions { margin-top: 10px; display: flex; gap: 10px; font-size: 0.85em; }
+        .action-btn { background: #202225; border: none; color: #b9bbbe; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+        .action-btn:hover { background: #3ba55c; color: white; }
+
+        #input-area { padding: 20px; background: rgba(54, 57, 63, 0.5); display: flex; gap: 10px; align-items: center; }
+        #msg { flex: 1; padding: 15px; background: #40444b; border: none; color: white; border-radius: 8px; outline: none; }
+        
+        #file-upload { display: none; }
+        .upload-btn { background: #40444b; color: white; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .upload-btn:hover { background: #5865F2; }
+        
+        .highlight { background: rgba(250, 166, 26, 0.2) !important; border-left-color: #faa61a !important; }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="box">
+            <h2>Welcome to Ultimate Chat</h2>
+            <input type="text" id="username" placeholder="Enter username...">
+            <button onclick="joinChat()">Enter App</button>
+        </div>
+    </div>
+
+    <div id="settings-modal">
+        <div class="box">
+            <h2>Settings</h2>
+            <input type="text" id="new-username" placeholder="New username...">
+            <button onclick="saveSettings()">Save & Update</button>
+            <button class="close-btn" onclick="document.getElementById('settings-modal').style.display='none'">Close</button>
+        </div>
+    </div>
+
+    <div id="sidebar">
+        <div class="channel active" onclick="switchChannel('general', this)"># general</div>
+        <div class="channel" onclick="switchChannel('gaming', this)"># gaming</div>
+        <div class="channel" onclick="switchChannel('random', this)"># random</div>
+        <div id="settings-btn" onclick="openSettings()">⚙️ Settings</div>
+    </div>
+
+    <div id="chat-container">
+        <div id="chat-header"># general</div>
+        <div id="chat"></div>
+        <div id="input-area">
+            <label class="upload-btn" for="file-upload">📎</label>
+            <input type="file" id="file-upload" accept="image/*,video/*">
+            <input type="text" id="msg" placeholder="Message #general...">
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let myName = "";
+        let currentChannel = "general";
+        let pendingMediaBase64 = null;
+        let pendingMediaType = null; // 'image' or 'video'
+        
+        const chat = document.getElementById('chat');
+        const msgInput = document.getElementById('msg');
+        const chatHeader = document.getElementById('chat-header');
+
+        window.onload = () => {
+            const savedName = localStorage.getItem('chatUsername');
+            if (savedName) {
+                document.getElementById('username').value = savedName;
+                joinChat();
+            }
+        };
+
+        function playPingSound() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            osc.connect(ctx.destination);
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.15);
+        }
+
+        function joinChat() {
+            myName = document.getElementById('username').value.trim();
+            if(!myName) return alert("Please enter a username!");
+            
+            localStorage.setItem('chatUsername', myName);
+            document.getElementById('login-screen').style.display = 'none';
+
+            ws = new WebSocket(`ws://${window.location.host}`);
+            
+            ws.onopen = () => { ws.send(JSON.stringify({ type: 'join', channel: currentChannel })); };
+
+            ws.onmessage = async (e) => {
+                const rawText = e.data instanceof Blob ? await e.data.text() : e.data;
+                const data = JSON.parse(rawText);
+                
+                if (data.type === 'history') {
+                    chat.innerHTML = ''; 
+                    data.messages.forEach(msg => appendMessage(msg));
+                } else if (data.type === 'message') {
+                    appendMessage(data);
+                } else if (data.type === 'updateLikes') {
+                    const likeBtn = document.getElementById('like-' + data.id);
+                    if(likeBtn) likeBtn.innerText = `❤️ ${data.likes}`;
+                }
+            };
+        }
+
+        function switchChannel(channelName, element) {
+            currentChannel = channelName;
+            document.querySelectorAll('.channel').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            chatHeader.innerText = `# ${channelName}`;
+            msgInput.placeholder = `Message #${channelName}...`;
+
+            if(ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'join', channel: currentChannel }));
+            }
+        }
+
+        function appendMessage(msg) {
+            let isPinged = false;
+            if (msg.text.includes(`@${myName}`)) {
+                isPinged = true;
+                if (msg.user !== myName) playPingSound(); 
+            }
+
+            let mediaHtml = '';
+            if (msg.media) {
+                if (msg.mediaType === 'video') {
+                    mediaHtml = `<video src="${msg.media}" class="msg-media" controls></video>`;
+                } else {
+                    mediaHtml = `<img src="${msg.media}" class="msg-media">`;
+                }
+            }
+            
+            chat.innerHTML += `
+                <div class="msg-block ${isPinged ? 'highlight' : ''}" id="msg-${msg.id}">
+                    <span class="msg-user">${msg.user}</span>
+                    <div class="msg-text">${msg.text}</div>
+                    ${mediaHtml}
+                    <div class="msg-actions">
+                        <button class="action-btn" id="like-${msg.id}" onclick="likeMessage('${msg.id}')">❤️ ${msg.likes}</button>
+                        <button class="action-btn" onclick="replyTo('${msg.user}')">↩️ Reply</button>
+                    </div>
+                </div>
+            `;
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function openSettings() {
+            document.getElementById('new-username').value = myName;
+            document.getElementById('settings-modal').style.display = 'flex';
+        }
+
+        function saveSettings() {
+            const newName = document.getElementById('new-username').value.trim();
+            if(newName) {
+                myName = newName;
+                localStorage.setItem('chatUsername', myName);
+                document.getElementById('settings-modal').style.display = 'none';
+            }
+        }
+
+        function likeMessage(msgId) {
+            if(ws) ws.send(JSON.stringify({ type: 'like', channel: currentChannel, messageId: msgId }));
+        }
+
+        function replyTo(user) {
+            msgInput.value = `@${user} ` + msgInput.value;
+            msgInput.focus();
+        }
+
+        // Handle Image/Video Selection
+        document.getElementById('file-upload').addEventListener('change', function() {
+            const file = this.files[0];
+            if (!file) return;
+            
+            // Limit to 50MB (50 * 1024 * 1024 bytes)
+            if (file.size > 52428800) return alert("File is too large! Max limit is 50MB."); 
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                pendingMediaBase64 = e.target.result;
+                pendingMediaType = file.type.startsWith('video') ? 'video' : 'image';
+                msgInput.placeholder = `[${pendingMediaType} attached] Add a message...`;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Send Message
+        msgInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter' && (msgInput.value.trim() || pendingMediaBase64) && ws) {
+                
+                // Show a loading indicator if uploading a big video
+                if (pendingMediaType === 'video') {
+                    msgInput.placeholder = "Uploading video... please wait.";
+                }
+
+                ws.send(JSON.stringify({ 
+                    type: 'message', 
+                    channel: currentChannel, 
+                    user: myName, 
+                    text: msgInput.value,
+                    media: pendingMediaBase64,
+                    mediaType: pendingMediaType
+                }));
+                
+                msgInput.value = '';
+                msgInput.placeholder = `Message #${currentChannel}...`;
+                pendingMediaBase64 = null; 
+                pendingMediaType = null;
+                document.getElementById('file-upload').value = ''; 
+            }
+        });
+    </script>
+</body>
+</html>
