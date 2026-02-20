@@ -1,0 +1,7 @@
+/node_modules
+
+# Lock Files
+package-lock.json
+bun.lock
+
+chat_history.json

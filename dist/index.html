@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ultimate Chat</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script type="module" crossorigin src="/assets/index-hRSDq4su.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-B5r0KJcA.css">
+  </head>
+  <body>
+    <div id="login-screen" class="modal-bg" style="display: flex">
+      <div class="box">
+        <h2>Ultimate Chat</h2>
+        <div class="disclaimer">
+          ⚠️ SECURITY WARNING:<br />This is a hobby server. DO NOT use your real
+          password here!
+        </div>
+        <input type="text" id="auth-user" placeholder="Username" />
+        <input type="password" id="auth-pass" placeholder="Password" />
+        <button onclick="authenticate('login')">Login</button>
+        <button onclick="authenticate('register')" style="background: #3ba55c">
+          Register
+        </button>
+        <div
+          id="auth-error"
+          style="color: #ed4245; margin-top: 10px; font-size: 0.9em"
+        ></div>
+      </div>
+    </div>
+
+    <div id="settings-modal" class="modal-bg">
+      <div class="box">
+        <h2>User Settings</h2>
+        <p>Logged in as: <b id="settings-username"></b></p>
+        <input
+          type="password"
+          id="new-password"
+          placeholder="New Password..."
+        />
+        <button onclick="changePassword()">Change Password</button>
+        <button onclick="signOut()" class="danger-btn">Sign Out</button>
+        <button
+          class="close-btn"
+          onclick="
+            document.getElementById('settings-modal').style.display = 'none'
+          "
+        >
+          Close
+        </button>
+      </div>
+    </div>
+
+    <div id="server-settings-modal" class="modal-bg">
+      <div class="box">
+        <h2>Server Settings</h2>
+        <p style="color: #faa61a; font-size: 0.9em">
+          Invite Code: <b id="settings-server-code"></b>
+        </p>
+        <input
+          type="text"
+          id="edit-server-name"
+          placeholder="New Server Name..."
+        />
+        <input
+          type="text"
+          id="edit-server-pfp"
+          placeholder="PFP Image URL (Optional)..."
+        />
+        <button onclick="saveServerEdits()">Save Server Details</button>
+        <hr style="border-color: #202225; margin: 15px 0" />
+        <input
+          type="text"
+          id="new-channel-name"
+          placeholder="new-channel-name..."
+        />
+        <button onclick="addChannel()" style="background: #3ba55c">
+          Create Channel
+        </button>
+        <button onclick="removeChannel()" class="danger-btn">
+          Delete Current Channel
+        </button>
+        <button
+          class="close-btn"
+          onclick="
+            document.getElementById('server-settings-modal').style.display =
+              'none'
+          "
+        >
+          Close
+        </button>
+      </div>
+    </div>
+
+    <div id="app-layout">
+      <div id="server-bar"></div>
+
+      <div id="sidebar">
+        <div class="server-title">
+          <span id="current-server-name">Global Server</span>
+          <span id="server-settings-gear" onclick="openServerSettings()"
+            >⚙️</span
+          >
+        </div>
+        <div id="channel-list"></div>
+        <button id="add-channel-btn" onclick="openAddChannelModal()">
+          + Add Channel
+        </button>
+        <div id="settings-btn" onclick="openSettings()">👤 Account</div>
+      </div>
+
+      <div id="add-channel-modal" class="modal-bg">
+        <div class="box">
+          <h2>Add Channel</h2>
+          <input
+            type="text"
+            id="add-channel-name-input"
+            placeholder="Channel name..."
+          />
+          <button onclick="createChannel()">Create</button>
+          <button
+            class="close-btn"
+            onclick="
+              document.getElementById('add-channel-modal').style.display =
+                'none'
+            "
+          >
+            Close
+          </button>
+        </div>
+      </div>
+
+      <div id="delete-channel-modal" class="modal-bg">
+        <div class="box">
+          <h2>Delete Channel</h2>
+          <p>Delete <strong id="delete-channel-name"></strong>?</p>
+          <button class="close-btn" onclick="confirmDeleteChannel()">
+            Delete
+          </button>
+          <button
+            onclick="
+              document.getElementById('delete-channel-modal').style.display =
+                'none'
+            "
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <div id="chat-container">
+        <div id="chat-header">
+          <span id="header-title"># general</span>
+          <span id="loading-indicator">Fetching...</span>
+        </div>
+        <div id="chat"></div>
+        <div id="input-area">
+          <div id="typing-indicator"></div>
+          <div class="input-row">
+            <label class="upload-btn" for="file-upload">📎</label>
+            <input type="file" id="file-upload" accept="image/*,video/*" />
+            <input type="text" id="msg" placeholder="Message..." />
+          </div>
+        </div>
+      </div>
+
+      <div id="game-view">
+        <div id="game-controls">
+          <button class="upload-btn" onclick="toggleFullScreenGame()">
+            ⛶ Fullscreen
+          </button>
+          <button class="upload-btn danger-btn" onclick="exitGame()">
+            ✖ Exit Game
+          </button>
+        </div>
+        <div id="game-menu">
+          <h1
+            style="color: white; font-size: 3em; text-shadow: 0 0 10px #5865f2"
+          >
+            SPACE SHOOTER
+          </h1>
+          <button
+            class="upload-btn"
+            onclick="startGame('single')"
+            style="width: 200px; margin-bottom: 10px"
+          >
+            Single Player (vs AI)
+          </button>
+          <button
+            class="upload-btn"
+            onclick="
+              alert(
+                'Multiplayer requires a dedicated UDP physics server! Play Single Player for now.',
+              )
+            "
+            style="width: 200px; background: #4f545c"
+          >
+            Multiplayer (Offline)
+          </button>
+        </div>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+      </div>
+    </div>
+
+  </body>
+</html>
