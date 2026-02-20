@@ -6,7 +6,7 @@ export interface ChatMessage {
   text: string;
   media?: string;
   mediaType?: string;
-  likes: number;
+  likes?: number;
 }
 
 export type ChatHistory = Record<string, ChatMessage[]>;
@@ -48,6 +48,12 @@ export function loadHistory() {
 
   try {
     const savedData = fs.readFileSync(HISTORY_FILE, "utf8");
+    if (!savedData.trim()) {
+      console.log("History file is empty. Creating 'general' channel.");
+      chatHistory.general = [];
+      saveHistory();
+      return;
+    }
     const parsed = JSON.parse(savedData);
 
     if (typeof parsed !== "object" || parsed === null) {
@@ -67,7 +73,9 @@ export function loadHistory() {
       saveHistory();
     }
 
-    console.log(`Chat history loaded from disk: ${Object.keys(chatHistory).join(", ")}`);
+    console.log(
+      `Chat history loaded from disk: ${Object.keys(chatHistory).join(", ")}`,
+    );
   } catch (error) {
     console.error("There was an error.", error);
     chatHistory.general = [];
